@@ -1,29 +1,29 @@
-import  user_model  from '../models/user_models.js'
+import user_model from '../models/user_models.js'
 
 export const create_user = async (req, res) => {
     try {
         const data = req.body
 
-        const { name, email, password } = data
+        const { email } = data
 
-        const nameRe = /^[A-Za-z ]{2,50}$/;
-        const emailRe = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        const passRe =/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        const randomOtp = Math.floor(1000 + Math.random() * 9000)
+        const expiryTime = Date.now() + 5 * 60 * 1000;
 
+        const checkUser = await user_model.findOneAndUpdate({ email: email },
+            { $set: { 'user.userOtp': randomOtp, 'user.otpExpire': expiryTime } })
 
-        if (!name) return res.status(400).send({ status: false, msg: "name is required" })
-        if (!nameRe.test(name)) return res.status(400).send({ status: false, msg: "Invalid name" })
+            if (checkUser) {
+            const { isVerify, isDelete } = checkUser.user
 
-        if (!email) return res.status(400).send({ status: false, msg: "email is required" })
-        if (!emailRe.test(email.trim())) return res.status(400).send({ status: false, msg: "Invalid email" })
+            if (isDelete) return res.status(200).send({ status: true, msg: "Your Account is Delete" })
+            if (!isVerify) return res.status(200).send({ status: true, msg: "resend otp send ..." })
+            if (isVerify) return res.status(200).send({ status: true, msg: "accosunt already verify pls login..." })
 
-        if (!password) return res.status(400).send({ status: false, msg: "password is required" })
-        if (!passRe.test(password)) return res.status(400).send({ status: false, msg: "Invalid Password" })
+        }
 
         const DB = await user_model.create(data)
-
 
         return res.status(201).send({ status: true, msg: "SucessFull Create User", DB })
     }
     catch (err) { return res.status(500).send({ status: false, msg: err.message }) }
-} 
+}  
